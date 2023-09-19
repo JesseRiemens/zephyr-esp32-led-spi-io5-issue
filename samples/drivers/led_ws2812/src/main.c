@@ -16,6 +16,7 @@ LOG_MODULE_REGISTER(main);
 #include <zephyr/drivers/led_strip.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/spi.h>
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/sys/util.h>
 
 #define STRIP_NODE		DT_ALIAS(led_strip)
@@ -35,6 +36,8 @@ struct led_rgb pixels[STRIP_NUM_PIXELS];
 
 static const struct device *const strip = DEVICE_DT_GET(STRIP_NODE);
 
+static const struct gpio_dt_spec led_spec = GPIO_DT_SPEC_GET_OR(DT_NODELABEL(led0), gpios, {0});
+
 int main(void)
 {
 	size_t cursor = 0, color = 0;
@@ -46,6 +49,20 @@ int main(void)
 		LOG_ERR("LED strip device %s is not ready", strip->name);
 		return 0;
 	}
+
+	rc = gpio_pin_configure_dt(&led_spec, GPIO_OUTPUT);
+	if (rc < 0) {
+		LOG_ERR("Couldn't configure LED pin: %d", rc);
+		return 0;
+	}
+
+	rc = gpio_pin_set_dt(&led_spec, 1);
+	if (rc < 0) {
+		LOG_ERR("Couldn't set LED pin: %d", rc);
+		return 0;
+	}
+
+	k_sleep(K_MSEC(3000));
 
 	LOG_INF("Displaying pattern on strip");
 	while (1) {
